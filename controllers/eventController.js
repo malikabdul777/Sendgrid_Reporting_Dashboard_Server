@@ -1,6 +1,6 @@
 const Event = require("../models/event.model");
 const Domain = require("../models/domain.model");
-const SpamReporter = require("../models/spamReporter.model");
+const SpamReporter = require("../models/spamreporter.model");
 
 const { extractDomain } = require("../utils/extractDomain");
 
