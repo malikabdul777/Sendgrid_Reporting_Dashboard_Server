@@ -2,7 +2,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 
-const webhookRoutes = require("./routes/webhookRoutes");
+const eventRoutes = require("./routes/eventRoutes");
+const domainRoutes = require("./routes/domainRoutes");
 
 const app = express();
 
@@ -11,6 +12,7 @@ app.use(express.json());
 app.use(cors());
 
 // Routes
-app.use("/", webhookRoutes);
+app.use("/", eventRoutes);
+app.use("/", domainRoutes);
 
 module.exports = app;

@@ -31,8 +31,14 @@ const eventSchema = new Schema(
 
     // Fields for account status change events
     type: { type: String, required: false },
+
+    // Domain field
+    domain: String,
   },
   { timestamps: true }
 );
+
+// Indexing for fast retrieval by domain and sorting by timestamp
+eventSchema.index({ domain: 1, timestamp: -1 });
 
 module.exports = mongoose.model("Event", eventSchema);
