@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const domainSchema = new mongoose.Schema(
   {
     domain: { type: String, unique: true, required: true },
+    events: { type: Object, default: {} },
   },
   { timestamps: true }
 );
