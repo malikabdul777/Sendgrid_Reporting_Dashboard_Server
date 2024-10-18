@@ -7,6 +7,9 @@ const router = express.Router();
 router.route("/sendgrid-event").post(eventController.handleEventLogs);
 
 // Route to get events by domain
-router.route("/events").get(eventController.getEventsByDomain);
+// router.route("/events").get(eventController.getEventsByDomain);
+
+// Route to get events by event type and date range
+router.route("/events").get(eventController.getEventsByTypeAndDateRange);
 
 module.exports = router;

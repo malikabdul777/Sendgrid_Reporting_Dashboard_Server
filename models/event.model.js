@@ -9,7 +9,7 @@ const eventSchema = new Schema(
     event: { type: String, required: true },
     category: { type: [String], required: false },
     sg_event_id: { type: String, required: true },
-    sg_message_id: { type: String, required: true },
+    sg_message_id: { type: String, required: false },
 
     // Optional fields for specific events
     response: { type: String, required: false },
