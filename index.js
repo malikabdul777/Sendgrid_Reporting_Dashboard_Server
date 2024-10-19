@@ -4,6 +4,8 @@ const cors = require("cors");
 
 const eventRoutes = require("./routes/eventRoutes");
 const domainRoutes = require("./routes/domainRoutes");
+const cloudflareRoutes = require("./routes/cloudflareRoutes");
+const sendgridRoutes = require("./routes/sendgridRoutes");
 
 const app = express();
 
@@ -14,5 +16,7 @@ app.use(cors());
 // Routes
 app.use("/", eventRoutes);
 app.use("/", domainRoutes);
+app.use("/", cloudflareRoutes);
+app.use("/", sendgridRoutes);
 
 module.exports = app;
