@@ -6,4 +6,9 @@ const sgDomainAuthController = require("../controllers/sendgridDomainAuthControl
 // Define routes for domains
 router.post("/sendgrid-add-domain", sgDomainAuthController.authenticateDomain);
 
+router.post(
+  "/sendgrid-validate-domain",
+  sgDomainAuthController.checkDomainAuthenticationStatus
+);
+
 module.exports = router;
