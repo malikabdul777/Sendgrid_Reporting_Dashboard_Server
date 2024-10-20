@@ -108,7 +108,7 @@ exports.addZoneId = async (req, res) => {
 
     if (domainRecord) {
       return res.status(200).json({
-        success: true,
+        success: false,
         message: `Domain ${domainName} already exists with zoneId ${domainRecord.zoneId}.`,
       });
     }
