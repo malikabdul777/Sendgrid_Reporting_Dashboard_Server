@@ -90,3 +90,49 @@ exports.checkDomainStatus = async (req, res) => {
       .json({ success: false, message: "Error checking domain status." });
   }
 };
+
+exports.addZoneId = async (req, res) => {
+  const { domainName, zoneId } = req.body;
+
+  // Validate input
+  if (!domainName || !zoneId) {
+    return res.status(400).json({
+      success: false,
+      message: "Both domain name and zone ID are required.",
+    });
+  }
+
+  try {
+    // Check if the domain already exists in the Cloudflare domains collection
+    let domainRecord = await cloudflareDomain.findOne({ domainName });
+
+    if (domainRecord) {
+      return res.status(200).json({
+        success: true,
+        message: `Domain ${domainName} already exists with zoneId ${domainRecord.zoneId}.`,
+      });
+    }
+
+    // If domain does not exist, create a new record
+    domainRecord = new cloudflareDomain({
+      domainName,
+      zoneId,
+      createdOn: new Date(), // Add timestamp
+    });
+
+    await domainRecord.save();
+
+    return res.status(201).json({
+      success: true,
+      message: `Domain ${domainName} has been successfully added with zoneId ${zoneId}.`,
+      data: domainRecord,
+    });
+  } catch (error) {
+    console.error("Error adding or updating domain:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Error adding or updating domain.",
+      error: error.response ? error.response.data : error.message,
+    });
+  }
+};

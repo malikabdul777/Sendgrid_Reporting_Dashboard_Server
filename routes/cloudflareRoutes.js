@@ -14,6 +14,8 @@ router.post(
   cloudflareDomainController.checkDomainStatus
 );
 
+router.post("/cloudflare-add-zone-id", cloudflareDomainController.addZoneId);
+
 router.post("/cloudflare-add-dns-record", cloudflareDNSController.addDNSRecord);
 
 module.exports = router;
