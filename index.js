@@ -6,6 +6,7 @@ const eventRoutes = require("./routes/eventRoutes");
 const domainRoutes = require("./routes/domainRoutes");
 const cloudflareRoutes = require("./routes/cloudflareRoutes");
 const sendgridRoutes = require("./routes/sendgridRoutes");
+const webformDomainRecordRoutes = require("./routes/webformDomainRecordRoutes");
 
 const app = express();
 
@@ -18,5 +19,6 @@ app.use("/", eventRoutes);
 app.use("/", domainRoutes);
 app.use("/", cloudflareRoutes);
 app.use("/", sendgridRoutes);
+app.use("/", webformDomainRecordRoutes);
 
 module.exports = app;
