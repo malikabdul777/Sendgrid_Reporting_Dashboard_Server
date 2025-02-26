@@ -16,7 +16,7 @@ exports.addDomainToCloudflare = async (req, res) => {
   }
 
   try {
-    const response = await axios.post(
+    const zoneResponse = await axios.post(
       "https://api.cloudflare.com/client/v4/zones",
       {
         name: domainName,
@@ -24,6 +24,7 @@ exports.addDomainToCloudflare = async (req, res) => {
           id: process.env.CLOUDFLARE_ACCOUNT_ID,
         },
         type: "full",
+        jump_start: true,
       },
       {
         headers: {
@@ -34,7 +35,47 @@ exports.addDomainToCloudflare = async (req, res) => {
       }
     );
 
-    const zoneId = response.data.result.id;
+    const zoneId = zoneResponse.data.result.id;
+
+    // Set SSL mode to flexible
+    await axios.patch(
+      `${CLOUDFLARE_API_URL}/${zoneId}/settings/ssl`,
+      { value: "flexible" },
+      {
+        headers: {
+          "X-Auth-Email": process.env.CLOUDFLARE_EMAIL,
+          "X-Auth-Key": process.env.CLOUDFLARE_API_KEY,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    // Enable Always Use HTTPS
+    await axios.patch(
+      `${CLOUDFLARE_API_URL}/${zoneId}/settings/always_use_https`,
+      { value: "on" },
+      {
+        headers: {
+          "X-Auth-Email": process.env.CLOUDFLARE_EMAIL,
+          "X-Auth-Key": process.env.CLOUDFLARE_API_KEY,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    // Enable Automatic HTTPS Rewrites
+    await axios.patch(
+      `${CLOUDFLARE_API_URL}/${zoneId}/settings/automatic_https_rewrites`,
+      { value: "on" },
+      {
+        headers: {
+          "X-Auth-Email": process.env.CLOUDFLARE_EMAIL,
+          "X-Auth-Key": process.env.CLOUDFLARE_API_KEY,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
     const createdOn = new Date();
 
     // Save the domain info in MongoDB
@@ -48,8 +89,8 @@ exports.addDomainToCloudflare = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: `Domain ${domainName} added to Cloudflare.`,
-      data: response.data,
+      message: `Domain ${domainName} added to Cloudflare with flexible SSL.`,
+      data: zoneResponse.data,
     });
   } catch (error) {
     res.status(500).json({
