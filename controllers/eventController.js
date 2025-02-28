@@ -14,26 +14,37 @@ exports.handleEventLogs = async (req, res) => {
     if (Array.isArray(eventsData)) {
       // Loop through each event in the data array
       for (const event of eventsData) {
+        // Ensure smtp-id exists
+        const eventWithSmtpId = {
+          ...event,
+          "smtp-id": event["smtp-id"] || "not found",
+        };
+
         // Check if it's a bounce event with blocked type
         if (event.event === "bounce" && event.type === "blocked") {
-          const BlockedEventModel = getEventModel("blocked"); // Store in blocked collection
-          const eventInstance = new BlockedEventModel(event);
+          const BlockedEventModel = getEventModel("blocked");
+          const eventInstance = new BlockedEventModel(eventWithSmtpId);
           await eventInstance.save();
         } else {
           const EventModel = getEventModel(event.event);
-          const eventInstance = new EventModel(event);
+          const eventInstance = new EventModel(eventWithSmtpId);
           await eventInstance.save();
         }
       }
     } else {
       // Handle single event
+      const eventWithSmtpId = {
+        ...eventsData,
+        "smtp-id": eventsData["smtp-id"] || "not found",
+      };
+
       if (eventsData.event === "bounce" && eventsData.type === "blocked") {
         const BlockedEventModel = getEventModel("blocked");
-        const eventInstance = new BlockedEventModel(eventsData);
+        const eventInstance = new BlockedEventModel(eventWithSmtpId);
         await eventInstance.save();
       } else {
         const EventModel = getEventModel(eventsData.event);
-        const eventInstance = new EventModel(eventsData);
+        const eventInstance = new EventModel(eventWithSmtpId);
         await eventInstance.save();
       }
     }
