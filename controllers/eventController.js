@@ -99,8 +99,6 @@ exports.handleEventLogs = async (req, res) => {
             console.error("Error saving spam report:", error);
             throw error;
           }
-        } else {
-          console.log("No email found in spamreport event");
         }
         return;
       }
@@ -111,22 +109,20 @@ exports.handleEventLogs = async (req, res) => {
       };
 
       // Extract domain from smtp-id
-      const domain = extractDomain(eventWithSmtpId["smtp-id"]);
+      const domain = extractDomain(eventWithSmtpId["smtp-id"]) || "not found";
 
-      if (domain) {
-        if (event.event === "delivered") {
-          await updateSG2Report(domain, "delivered");
-        } else if (event.event === "bounce" && event.type === "blocked") {
-          await updateSG2Report(domain, "blocked", event.email);
+      if (event.event === "delivered") {
+        await updateSG2Report(domain, "delivered");
+      } else if (event.event === "bounce" && event.type === "blocked") {
+        await updateSG2Report(domain, "blocked", event.email);
 
-          const BlockedEventModel = getEventModel("blocked");
-          const eventInstance = new BlockedEventModel(eventWithSmtpId);
-          await eventInstance.save();
-        } else {
-          const EventModel = getEventModel(event.event);
-          const eventInstance = new EventModel(eventWithSmtpId);
-          await eventInstance.save();
-        }
+        const BlockedEventModel = getEventModel("blocked");
+        const eventInstance = new BlockedEventModel(eventWithSmtpId);
+        await eventInstance.save();
+      } else {
+        const EventModel = getEventModel(event.event);
+        const eventInstance = new EventModel(eventWithSmtpId);
+        await eventInstance.save();
       }
     };
 
@@ -197,5 +193,102 @@ exports.getEventsByTypeAndDateRange = async (req, res) => {
     res.status(200).json(events);
   } catch (error) {
     res.status(500).json({ message: "Error retrieving events", error });
+  }
+};
+
+// Function to get the appropriate model name based on number
+const getSGModelName = (number) => `SG${number}_Report`;
+
+// Get reports from specified collection
+exports.getSGReports = async (req, res) => {
+  try {
+    const { number } = req.params;
+
+    // Validate number
+    if (!number || isNaN(number) || number < 2) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a valid number (2 or greater)",
+      });
+    }
+
+    const modelName = getSGModelName(number);
+
+    try {
+      const Model = mongoose.model(modelName);
+      const reports = await Model.find({});
+
+      res.status(200).json({
+        success: true,
+        data: reports,
+      });
+    } catch (error) {
+      return res.status(404).json({
+        success: false,
+        message: `Collection ${modelName} not found`,
+      });
+    }
+  } catch (error) {
+    console.error("Error fetching reports:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching reports",
+      error: error.message,
+    });
+  }
+};
+
+// Delete domain from specified collection
+exports.deleteSGReportByDomain = async (req, res) => {
+  try {
+    const { number } = req.params;
+    const { domain } = req.query;
+
+    // Validate inputs
+    if (!number || isNaN(number) || number < 2) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a valid number (2 or greater)",
+      });
+    }
+
+    if (!domain) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a domain to delete",
+      });
+    }
+
+    const modelName = getSGModelName(number);
+
+    try {
+      const Model = mongoose.model(modelName);
+      const result = await Model.findOneAndDelete({ domain });
+
+      if (!result) {
+        return res.status(404).json({
+          success: false,
+          message: `Domain ${domain} not found in ${modelName}`,
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: `Successfully deleted ${domain} from ${modelName}`,
+        data: result,
+      });
+    } catch (error) {
+      return res.status(404).json({
+        success: false,
+        message: `Collection ${modelName} not found`,
+      });
+    }
+  } catch (error) {
+    console.error("Error deleting domain:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error deleting domain",
+      error: error.message,
+    });
   }
 };

@@ -12,4 +12,10 @@ router.route("/sendgrid-event").post(eventController.handleEventLogs);
 // Route to get events by event type and date range
 router.route("/events").get(eventController.getEventsByTypeAndDateRange);
 
+// New routes for fetching and deleting SG reports
+router
+  .route("/sg-reports/:number")
+  .get(eventController.getSGReports)
+  .delete(eventController.deleteSGReportByDomain);
+
 module.exports = router;
