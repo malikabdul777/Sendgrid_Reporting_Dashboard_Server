@@ -292,3 +292,43 @@ exports.deleteSGReportByDomain = async (req, res) => {
     });
   }
 };
+
+// Get all spam reports
+exports.getSpamReports = async (req, res) => {
+  try {
+    const reports = await SpamReport.find({}).sort({ createdAt: -1 }); // Sort by newest first
+
+    res.status(200).json({
+      success: true,
+      count: reports.length,
+      data: reports,
+    });
+  } catch (error) {
+    console.error("Error fetching spam reports:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching spam reports",
+      error: error.message,
+    });
+  }
+};
+
+// Clear all spam reports
+exports.clearSpamReports = async (req, res) => {
+  try {
+    const result = await SpamReport.deleteMany({});
+
+    res.status(200).json({
+      success: true,
+      message: "Successfully cleared all spam reports",
+      deletedCount: result.deletedCount,
+    });
+  } catch (error) {
+    console.error("Error clearing spam reports:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error clearing spam reports",
+      error: error.message,
+    });
+  }
+};

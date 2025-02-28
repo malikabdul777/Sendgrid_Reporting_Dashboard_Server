@@ -18,4 +18,10 @@ router
   .get(eventController.getSGReports)
   .delete(eventController.deleteSGReportByDomain);
 
+// New spam reports routes
+router
+  .route("/spam-reports")
+  .get(eventController.getSpamReports)
+  .delete(eventController.clearSpamReports);
+
 module.exports = router;
