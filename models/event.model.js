@@ -41,4 +41,35 @@ const eventSchema = new Schema(
 // Indexing for fast retrieval by domain and sorting by timestamp
 eventSchema.index({ domain: 1, timestamp: -1 });
 
-module.exports = mongoose.model("Event", eventSchema);
+const sg2ReportSchema = new mongoose.Schema({
+  domain: { type: String, required: true, unique: true },
+  eventCounts: {
+    delivered: { type: Number, default: 0 },
+    blocked: { type: Number, default: 0 },
+  },
+  blockedEmailHosts: {
+    Gmail: { type: Number, default: 0 },
+    Outlook: { type: Number, default: 0 },
+    Yahoo: { type: Number, default: 0 },
+    Hotmail: { type: Number, default: 0 },
+    iCloud: { type: Number, default: 0 },
+    otherDomain: { type: Number, default: 0 },
+  },
+});
+
+const spamReportSchema = new mongoose.Schema(
+  {
+    email: { type: String, required: true },
+  },
+  { timestamps: true }
+);
+
+const Event = mongoose.model("Event", eventSchema);
+const SG2_Report = mongoose.model("SG2_Report", sg2ReportSchema);
+const SpamReport = mongoose.model("SpamReport", spamReportSchema);
+
+module.exports = {
+  Event,
+  SG2_Report,
+  SpamReport,
+};

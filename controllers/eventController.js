@@ -1,27 +1,124 @@
 const mongoose = require("mongoose");
-const eventSchema = require("../models/event.model").schema; // Import the schema (not the model)
+const { Event, SG2_Report, SpamReport } = require("../models/event.model");
+const { schema: eventSchema } = Event; // Get the schema from the Event model
 
 // Function to dynamically get or create a model for each event type
 const getEventModel = (eventType) => {
   // Use mongoose.model to retrieve or create a new model with the event type as the collection name
-  return mongoose.model(eventType, eventSchema, eventType);
+  try {
+    return mongoose.model(eventType);
+  } catch {
+    return mongoose.model(eventType, eventSchema, eventType);
+  }
+};
+
+// Function to extract domain from smtp-id
+const extractDomain = (smtpId) => {
+  if (!smtpId) return null;
+  // Remove angle brackets first
+  const cleanSmtpId = smtpId.replace(/[<>]/g, "");
+  // Extract everything after @ and remove 'mx.' if present
+  const match = cleanSmtpId.match(/@(?:mx\.)?([\w-]+\.[a-z]+)$/);
+  console.log("SMTP ID parsing:", {
+    original: smtpId,
+    cleaned: cleanSmtpId,
+    match: match ? match[1] : "no match",
+  });
+  return match ? match[1] : null;
+};
+
+// Function to identify email host
+const getEmailHost = (email) => {
+  if (!email) return "otherDomain";
+
+  const lowerEmail = email.toLowerCase();
+  if (lowerEmail.includes("gmail")) return "Gmail";
+  if (lowerEmail.includes("outlook")) return "Outlook";
+  if (lowerEmail.includes("yahoo")) return "Yahoo";
+  if (lowerEmail.includes("hotmail")) return "Hotmail";
+  if (lowerEmail.includes("icloud")) return "iCloud";
+  return "otherDomain";
+};
+
+// Function to update SG2_Report
+const updateSG2Report = async (domain, eventType, blockedEmail = null) => {
+  try {
+    console.log("Updating SG2_Report:", { domain, eventType, blockedEmail });
+
+    // First, try to find the existing document
+    let report = await SG2_Report.findOne({ domain });
+
+    if (!report) {
+      // If document doesn't exist, create a new one with initial values
+      report = new SG2_Report({
+        domain,
+        eventCounts: { delivered: 0, blocked: 0 },
+        blockedEmailHosts: {
+          Gmail: 0,
+          Outlook: 0,
+          Yahoo: 0,
+          Hotmail: 0,
+          iCloud: 0,
+          otherDomain: 0,
+        },
+      });
+    }
+
+    // Increment the appropriate event count
+    report.eventCounts[eventType]++;
+
+    // If this is a blocked event, increment the appropriate email host counter
+    if (eventType === "blocked" && blockedEmail) {
+      const emailHost = getEmailHost(blockedEmail);
+      report.blockedEmailHosts[emailHost]++;
+    }
+
+    // Save the updated document
+    const result = await report.save();
+    console.log("SG2_Report update result:", result);
+  } catch (error) {
+    console.error("Error updating SG2_Report:", error);
+    throw error;
+  }
 };
 
 exports.handleEventLogs = async (req, res) => {
   try {
     const eventsData = req.body;
+    console.log("Received events:", eventsData);
 
-    if (Array.isArray(eventsData)) {
-      // Loop through each event in the data array
-      for (const event of eventsData) {
-        // Ensure smtp-id exists
-        const eventWithSmtpId = {
-          ...event,
-          "smtp-id": event["smtp-id"] || "not found",
-        };
+    const processEvent = async (event) => {
+      // For spamreport events, just store the email and return
+      if (event.event === "spamreport") {
+        console.log("Processing spamreport event:", event);
+        if (event.email) {
+          try {
+            const spamReport = await SpamReport.create({ email: event.email });
+            console.log("Spam report saved successfully:", spamReport);
+          } catch (error) {
+            console.error("Error saving spam report:", error);
+            throw error;
+          }
+        } else {
+          console.log("No email found in spamreport event");
+        }
+        return;
+      }
 
-        // Check if it's a bounce event with blocked type
-        if (event.event === "bounce" && event.type === "blocked") {
+      const eventWithSmtpId = {
+        ...event,
+        "smtp-id": event["smtp-id"] || "not found",
+      };
+
+      // Extract domain from smtp-id
+      const domain = extractDomain(eventWithSmtpId["smtp-id"]);
+
+      if (domain) {
+        if (event.event === "delivered") {
+          await updateSG2Report(domain, "delivered");
+        } else if (event.event === "bounce" && event.type === "blocked") {
+          await updateSG2Report(domain, "blocked", event.email);
+
           const BlockedEventModel = getEventModel("blocked");
           const eventInstance = new BlockedEventModel(eventWithSmtpId);
           await eventInstance.save();
@@ -31,27 +128,18 @@ exports.handleEventLogs = async (req, res) => {
           await eventInstance.save();
         }
       }
-    } else {
-      // Handle single event
-      const eventWithSmtpId = {
-        ...eventsData,
-        "smtp-id": eventsData["smtp-id"] || "not found",
-      };
+    };
 
-      if (eventsData.event === "bounce" && eventsData.type === "blocked") {
-        const BlockedEventModel = getEventModel("blocked");
-        const eventInstance = new BlockedEventModel(eventWithSmtpId);
-        await eventInstance.save();
-      } else {
-        const EventModel = getEventModel(eventsData.event);
-        const eventInstance = new EventModel(eventWithSmtpId);
-        await eventInstance.save();
-      }
+    if (Array.isArray(eventsData)) {
+      await Promise.all(eventsData.map(processEvent));
+    } else {
+      await processEvent(eventsData);
     }
 
-    res.status(201).json({ message: "Events saved successfully" });
+    res.status(201).json({ message: "Events processed successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Error saving events", error });
+    console.error("Error processing events:", error);
+    res.status(500).json({ message: "Error processing events", error });
   }
 };
 
