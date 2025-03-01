@@ -2,6 +2,22 @@ const mongoose = require("mongoose");
 const { Event, SG2_Report, SpamReport } = require("../models/event.model");
 const { schema: eventSchema } = Event; // Get the schema from the Event model
 
+// Function to update existing documents with lastUpdated field
+const updateExistingDocuments = async () => {
+  try {
+    const result = await SG2_Report.updateMany(
+      { lastUpdated: { $exists: false } },
+      { $set: { lastUpdated: new Date() } }
+    );
+    console.log("Updated existing documents with lastUpdated:", result);
+  } catch (error) {
+    console.error("Error updating existing documents:", error);
+  }
+};
+
+// Call the update function when the module is loaded
+updateExistingDocuments();
+
 // Function to dynamically get or create a model for each event type
 const getEventModel = (eventType) => {
   // Use mongoose.model to retrieve or create a new model with the event type as the collection name
@@ -15,15 +31,7 @@ const getEventModel = (eventType) => {
 // Function to extract domain from smtp-id
 const extractDomain = (smtpId) => {
   if (!smtpId) return null;
-  // Remove angle brackets first
-  const cleanSmtpId = smtpId.replace(/[<>]/g, "");
-  // Extract everything after @ and remove 'mx.' if present
-  const match = cleanSmtpId.match(/@(?:mx\.)?([\w-]+\.[a-z]+)$/);
-  console.log("SMTP ID parsing:", {
-    original: smtpId,
-    cleaned: cleanSmtpId,
-    match: match ? match[1] : "no match",
-  });
+  const match = smtpId.match(/@(?:[\w-]+\.)*?([\w-]+\.[a-z]+)$/);
   return match ? match[1] : null;
 };
 
@@ -45,11 +53,9 @@ const updateSG2Report = async (domain, eventType, blockedEmail = null) => {
   try {
     console.log("Updating SG2_Report:", { domain, eventType, blockedEmail });
 
-    // First, try to find the existing document
     let report = await SG2_Report.findOne({ domain });
 
     if (!report) {
-      // If document doesn't exist, create a new one with initial values
       report = new SG2_Report({
         domain,
         eventCounts: { delivered: 0, blocked: 0 },
@@ -64,16 +70,15 @@ const updateSG2Report = async (domain, eventType, blockedEmail = null) => {
       });
     }
 
-    // Increment the appropriate event count
     report.eventCounts[eventType]++;
 
-    // If this is a blocked event, increment the appropriate email host counter
     if (eventType === "blocked" && blockedEmail) {
       const emailHost = getEmailHost(blockedEmail);
       report.blockedEmailHosts[emailHost]++;
     }
 
-    // Save the updated document
+    report.lastUpdated = new Date();
+
     const result = await report.save();
     console.log("SG2_Report update result:", result);
   } catch (error) {

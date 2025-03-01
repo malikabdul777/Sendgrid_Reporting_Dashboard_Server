@@ -55,6 +55,7 @@ const sg2ReportSchema = new mongoose.Schema({
     iCloud: { type: Number, default: 0 },
     otherDomain: { type: Number, default: 0 },
   },
+  lastUpdated: { type: Date, default: Date.now },
 });
 
 const spamReportSchema = new mongoose.Schema(
