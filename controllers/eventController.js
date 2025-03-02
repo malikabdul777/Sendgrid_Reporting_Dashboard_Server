@@ -32,7 +32,16 @@ const getEventModel = (eventType) => {
 const extractDomain = (smtpId) => {
   if (!smtpId) return null;
 
-  console.log("Extracting domain from:", smtpId);
+  console.log("SMTP ID Processing:", {
+    original: smtpId,
+    step1: smtpId.replace(/[<>]/g, ""),
+    step2: smtpId.replace(/[<>]/g, "").split("@"),
+    step3: smtpId.replace(/[<>]/g, "").split("@")[1],
+    finalDomain: smtpId
+      .replace(/[<>]/g, "")
+      .split("@")[1]
+      ?.replace(/^mx\./, ""),
+  });
 
   // Remove angle brackets and extract everything after @
   const afterAt = smtpId.replace(/[<>]/g, "").split("@")[1];
@@ -40,9 +49,13 @@ const extractDomain = (smtpId) => {
   // Remove 'mx.' prefix if it exists
   const domain = afterAt?.replace(/^mx\./, "");
 
-  console.log("Extracted domain:", domain);
+  console.log("Final domain extraction:", {
+    smtpId,
+    afterAt,
+    domain,
+  });
 
-  return domain || null;
+  return domain || "not found"; // Changed null to 'not found' to match your error case
 };
 
 // Function to identify email host
