@@ -2,22 +2,6 @@ const mongoose = require("mongoose");
 const { Event, SG2_Report, SpamReport } = require("../models/event.model");
 const { schema: eventSchema } = Event; // Get the schema from the Event model
 
-// Function to update existing documents with lastUpdated field
-const updateExistingDocuments = async () => {
-  try {
-    const result = await SG2_Report.updateMany(
-      { lastUpdated: { $exists: false } },
-      { $set: { lastUpdated: new Date() } }
-    );
-    console.log("Updated existing documents with lastUpdated:", result);
-  } catch (error) {
-    console.error("Error updating existing documents:", error);
-  }
-};
-
-// Call the update function when the module is loaded
-updateExistingDocuments();
-
 // Function to dynamically get or create a model for each event type
 const getEventModel = (eventType) => {
   // Use mongoose.model to retrieve or create a new model with the event type as the collection name
