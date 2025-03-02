@@ -94,14 +94,12 @@ exports.handleEventLogs = async (req, res) => {
 
     const processEvent = async (event) => {
       // For spamreport events, just store the email and return
-      if (event.event === "spamreport") {
-        console.log("Processing spamreport event:", event);
+      if (event.event === 'spamreport') {
         if (event.email) {
           try {
             const spamReport = await SpamReport.create({ email: event.email });
-            console.log("Spam report saved successfully:", spamReport);
           } catch (error) {
-            console.error("Error saving spam report:", error);
+            console.error('Error saving spam report:', error);
             throw error;
           }
         }
@@ -110,18 +108,27 @@ exports.handleEventLogs = async (req, res) => {
 
       const eventWithSmtpId = {
         ...event,
-        "smtp-id": event["smtp-id"] || "not found",
+        'smtp-id': event['smtp-id'] || 'not found'
       };
 
+      console.log("Event with SMTP ID:", {
+        original: event['smtp-id'],
+        processed: eventWithSmtpId['smtp-id']
+      });
+
       // Extract domain from smtp-id
-      const domain = extractDomain(eventWithSmtpId["smtp-id"]) || "not found";
-
-      if (event.event === "delivered") {
-        await updateSG2Report(domain, "delivered");
-      } else if (event.event === "bounce" && event.type === "blocked") {
-        await updateSG2Report(domain, "blocked", event.email);
-
-        const BlockedEventModel = getEventModel("blocked");
+      const domain = extractDomain(eventWithSmtpId['smtp-id']) || 'not found';
+      console.log("Domain extraction:", {
+        smtpId: eventWithSmtpId['smtp-id'],
+        extractedDomain: domain
+      });
+      
+      if (event.event === 'delivered') {
+        await updateSG2Report(domain, 'delivered');
+      } else if (event.event === 'bounce' && event.type === 'blocked') {
+        await updateSG2Report(domain, 'blocked', event.email);
+        
+        const BlockedEventModel = getEventModel('blocked');
         const eventInstance = new BlockedEventModel(eventWithSmtpId);
         await eventInstance.save();
       } else {
@@ -139,7 +146,7 @@ exports.handleEventLogs = async (req, res) => {
 
     res.status(201).json({ message: "Events processed successfully" });
   } catch (error) {
-    console.error("Error processing events:", error);
+    console.error('Error processing events:', error);
     res.status(500).json({ message: "Error processing events", error });
   }
 };
