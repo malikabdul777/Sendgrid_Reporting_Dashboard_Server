@@ -31,8 +31,18 @@ const getEventModel = (eventType) => {
 // Function to extract domain from smtp-id
 const extractDomain = (smtpId) => {
   if (!smtpId) return null;
-  const match = smtpId.match(/@(?:[\w-]+\.)*?([\w-]+\.[a-z]+)$/);
-  return match ? match[1] : null;
+
+  console.log("Extracting domain from:", smtpId);
+
+  // Remove angle brackets and extract everything after @
+  const afterAt = smtpId.replace(/[<>]/g, "").split("@")[1];
+
+  // Remove 'mx.' prefix if it exists
+  const domain = afterAt?.replace(/^mx\./, "");
+
+  console.log("Extracted domain:", domain);
+
+  return domain || null;
 };
 
 // Function to identify email host
@@ -90,16 +100,23 @@ const updateSG2Report = async (domain, eventType, blockedEmail = null) => {
 exports.handleEventLogs = async (req, res) => {
   try {
     const eventsData = req.body;
-    console.log("Received events:", eventsData);
 
     const processEvent = async (event) => {
+      console.log("\n--- Processing New Event ---");
+      console.log("Event received:", {
+        event: event.event,
+        type: event.type,
+        "smtp-id": event["smtp-id"],
+        email: event.email,
+      });
+
       // For spamreport events, just store the email and return
-      if (event.event === 'spamreport') {
+      if (event.event === "spamreport") {
         if (event.email) {
           try {
             const spamReport = await SpamReport.create({ email: event.email });
           } catch (error) {
-            console.error('Error saving spam report:', error);
+            console.error("Error saving spam report:", error);
             throw error;
           }
         }
@@ -108,27 +125,21 @@ exports.handleEventLogs = async (req, res) => {
 
       const eventWithSmtpId = {
         ...event,
-        'smtp-id': event['smtp-id'] || 'not found'
+        "smtp-id": event["smtp-id"] || "not found",
       };
 
-      console.log("Event with SMTP ID:", {
-        original: event['smtp-id'],
-        processed: eventWithSmtpId['smtp-id']
-      });
+      console.log("SMTP ID found:", eventWithSmtpId["smtp-id"]);
 
       // Extract domain from smtp-id
-      const domain = extractDomain(eventWithSmtpId['smtp-id']) || 'not found';
-      console.log("Domain extraction:", {
-        smtpId: eventWithSmtpId['smtp-id'],
-        extractedDomain: domain
-      });
-      
-      if (event.event === 'delivered') {
-        await updateSG2Report(domain, 'delivered');
-      } else if (event.event === 'bounce' && event.type === 'blocked') {
-        await updateSG2Report(domain, 'blocked', event.email);
-        
-        const BlockedEventModel = getEventModel('blocked');
+      const domain = extractDomain(eventWithSmtpId["smtp-id"]) || "not found";
+      console.log("Domain extracted:", domain);
+
+      if (event.event === "delivered") {
+        await updateSG2Report(domain, "delivered");
+      } else if (event.event === "bounce" && event.type === "blocked") {
+        await updateSG2Report(domain, "blocked", event.email);
+
+        const BlockedEventModel = getEventModel("blocked");
         const eventInstance = new BlockedEventModel(eventWithSmtpId);
         await eventInstance.save();
       } else {
@@ -146,7 +157,7 @@ exports.handleEventLogs = async (req, res) => {
 
     res.status(201).json({ message: "Events processed successfully" });
   } catch (error) {
-    console.error('Error processing events:', error);
+    console.error("Error processing events:", error);
     res.status(500).json({ message: "Error processing events", error });
   }
 };
