@@ -68,8 +68,6 @@ const getEmailHost = (email) => {
 // Function to update SG2_Report
 const updateSG2Report = async (domain, eventType, blockedEmail = null) => {
   try {
-    console.log("Updating SG2_Report:", { domain, eventType, blockedEmail });
-
     let report = await SG2_Report.findOne({ domain });
 
     if (!report) {
@@ -95,9 +93,7 @@ const updateSG2Report = async (domain, eventType, blockedEmail = null) => {
     }
 
     report.lastUpdated = new Date();
-
-    const result = await report.save();
-    console.log("SG2_Report update result:", result);
+    await report.save();
   } catch (error) {
     console.error("Error updating SG2_Report:", error);
     throw error;
@@ -113,7 +109,7 @@ exports.handleEventLogs = async (req, res) => {
       if (event.event === "spamreport") {
         if (event.email) {
           try {
-            const spamReport = await SpamReport.create({ email: event.email });
+            await SpamReport.create({ email: event.email });
           } catch (error) {
             console.error("Error saving spam report:", error);
             throw error;
