@@ -124,10 +124,9 @@ exports.handleEventLogs = async (req, res) => {
       };
 
       if (!event["smtp-id"]) {
-        console.log("WARNING: Event missing SMTP ID:", {
-          event: event.event,
-          type: event.type,
-          email: event.email,
+        console.log("WARNING: Event missing SMTP ID. Full event data:", {
+          fullEvent: event,
+          timestamp: new Date().toISOString(),
         });
       }
 
