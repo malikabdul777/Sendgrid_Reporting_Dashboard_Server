@@ -30,18 +30,10 @@ const getEventModel = (eventType) => {
 
 // Function to extract domain from smtp-id
 const extractDomain = (smtpId) => {
-  if (!smtpId) return null;
-
-  console.log("SMTP ID Processing:", {
-    original: smtpId,
-    step1: smtpId.replace(/[<>]/g, ""),
-    step2: smtpId.replace(/[<>]/g, "").split("@"),
-    step3: smtpId.replace(/[<>]/g, "").split("@")[1],
-    finalDomain: smtpId
-      .replace(/[<>]/g, "")
-      .split("@")[1]
-      ?.replace(/^mx\./, ""),
-  });
+  if (!smtpId) {
+    console.log("WARNING: No SMTP ID provided");
+    return "not found";
+  }
 
   // Remove angle brackets and extract everything after @
   const afterAt = smtpId.replace(/[<>]/g, "").split("@")[1];
@@ -49,13 +41,15 @@ const extractDomain = (smtpId) => {
   // Remove 'mx.' prefix if it exists
   const domain = afterAt?.replace(/^mx\./, "");
 
-  console.log("Final domain extraction:", {
-    smtpId,
-    afterAt,
-    domain,
-  });
+  if (!domain) {
+    console.log("WARNING: Failed to extract domain from SMTP ID:", {
+      smtpId,
+      afterAt,
+      domain,
+    });
+  }
 
-  return domain || "not found"; // Changed null to 'not found' to match your error case
+  return domain || "not found";
 };
 
 // Function to identify email host
@@ -115,14 +109,6 @@ exports.handleEventLogs = async (req, res) => {
     const eventsData = req.body;
 
     const processEvent = async (event) => {
-      console.log("\n--- Processing New Event ---");
-      console.log("Event received:", {
-        event: event.event,
-        type: event.type,
-        "smtp-id": event["smtp-id"],
-        email: event.email,
-      });
-
       // For spamreport events, just store the email and return
       if (event.event === "spamreport") {
         if (event.email) {
@@ -141,11 +127,23 @@ exports.handleEventLogs = async (req, res) => {
         "smtp-id": event["smtp-id"] || "not found",
       };
 
-      console.log("SMTP ID found:", eventWithSmtpId["smtp-id"]);
+      if (!event["smtp-id"]) {
+        console.log("WARNING: Event missing SMTP ID:", {
+          event: event.event,
+          type: event.type,
+          email: event.email,
+        });
+      }
 
       // Extract domain from smtp-id
-      const domain = extractDomain(eventWithSmtpId["smtp-id"]) || "not found";
-      console.log("Domain extracted:", domain);
+      const domain = extractDomain(eventWithSmtpId["smtp-id"]);
+
+      if (domain === "not found") {
+        console.log("WARNING: Could not extract domain:", {
+          event: event.event,
+          smtpId: eventWithSmtpId["smtp-id"],
+        });
+      }
 
       if (event.event === "delivered") {
         await updateSG2Report(domain, "delivered");
