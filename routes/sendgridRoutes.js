@@ -11,4 +11,6 @@ router.post(
   sgDomainAuthController.checkDomainAuthenticationStatus
 );
 
+router.post("/sendgrid-sender-auth", sgDomainAuthController.senderAuth);
+
 module.exports = router;

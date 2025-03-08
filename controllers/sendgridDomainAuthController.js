@@ -2,13 +2,25 @@ const axios = require("axios");
 const SGAuthenticatedDomain = require("../models/SGAuthenticatedDomain.model");
 
 exports.authenticateDomain = async (req, res) => {
-  const { domainName } = req.body;
+  const { domainName, selectedAccount } = req.body;
 
   if (!domainName) {
     return res
       .status(400)
       .json({ success: false, message: "Domain name is required." });
   }
+
+  if (!selectedAccount || ![1, 2].includes(Number(selectedAccount))) {
+    return res.status(400).json({
+      success: false,
+      message: "Valid selected account (1 or 2) is required.",
+    });
+  }
+
+  const apiKey =
+    selectedAccount === 1
+      ? process.env.SENDGRID_API_KEY
+      : process.env.SENDGRID2_API_KEY;
 
   try {
     // API call to authenticate the domain
@@ -21,7 +33,7 @@ exports.authenticateDomain = async (req, res) => {
       },
       {
         headers: {
-          Authorization: `Bearer ${process.env.SENDGRID_API_KEY}`,
+          Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
       }
@@ -73,13 +85,25 @@ exports.authenticateDomain = async (req, res) => {
 };
 
 exports.checkDomainAuthenticationStatus = async (req, res) => {
-  const { domainName } = req.body; // Accepting domain name in the request body
+  const { domainName, selectedAccount } = req.body;
 
   if (!domainName) {
     return res
       .status(400)
       .json({ success: false, message: "Domain name is required." });
   }
+
+  if (!selectedAccount || ![1, 2].includes(Number(selectedAccount))) {
+    return res.status(400).json({
+      success: false,
+      message: "Valid selected account (1 or 2) is required.",
+    });
+  }
+
+  const apiKey =
+    selectedAccount === 1
+      ? process.env.SENDGRID_API_KEY
+      : process.env.SENDGRID2_API_KEY;
 
   try {
     // Find the domain in SGAuthenticatedDomains collection
@@ -99,7 +123,7 @@ exports.checkDomainAuthenticationStatus = async (req, res) => {
       {},
       {
         headers: {
-          Authorization: `Bearer ${process.env.SENDGRID_API_KEY}`,
+          Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
       }
@@ -118,5 +142,61 @@ exports.checkDomainAuthenticationStatus = async (req, res) => {
     res
       .status(500)
       .json({ success: false, message: "Error validating domain." });
+  }
+};
+
+exports.senderAuth = async (req, res) => {
+  const { nickname, from_email, reply_to, selectedAccount } = req.body;
+
+  // Validate required fields
+  if (!nickname || !from_email || !reply_to) {
+    return res.status(400).json({
+      success: false,
+      message: "nickname, from_email, and reply_to are required fields.",
+    });
+  }
+
+  if (!selectedAccount || ![1, 2].includes(Number(selectedAccount))) {
+    return res.status(400).json({
+      success: false,
+      message: "Valid selected account (1 or 2) is required.",
+    });
+  }
+
+  const apiKey =
+    selectedAccount === 1
+      ? process.env.SENDGRID_API_KEY
+      : process.env.SENDGRID2_API_KEY;
+
+  try {
+    const data = {
+      nickname,
+      from_email,
+      reply_to,
+    };
+
+    const response = await axios.post(
+      "https://api.sendgrid.com/v3/verified_senders",
+      data,
+      {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Sender authenticated successfully",
+      data: response.data,
+    });
+  } catch (error) {
+    console.error("Error authenticating sender:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Error authenticating sender",
+      error: error.response?.data || error.message,
+    });
   }
 };
