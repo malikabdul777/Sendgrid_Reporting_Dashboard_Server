@@ -153,16 +153,32 @@ exports.checkDomainAuthenticationStatus = async (req, res) => {
 };
 
 exports.senderAuth = async (req, res) => {
-  const { nickname, from_email, reply_to, selectedAccount } = req.body;
-
+  const {
+    nickname,
+    from_email,
+    reply_to,
+    selectedAccount,
+    from_name,
+    address,
+    city,
+    country,
+  } = req.body;
   // Validate required fields
-  if (!nickname || !from_email || !reply_to) {
+  if (
+    !nickname ||
+    !from_email ||
+    !reply_to ||
+    !from_name ||
+    !address ||
+    !city ||
+    !country
+  ) {
     return res.status(400).json({
       success: false,
-      message: "nickname, from_email, and reply_to are required fields.",
+      message:
+        "nickname, from_email, reply_to, from_name, address, city, and country are required fields.",
     });
   }
-
   if (!selectedAccount || ![1, 2].includes(Number(selectedAccount))) {
     return res.status(400).json({
       success: false,
@@ -180,6 +196,10 @@ exports.senderAuth = async (req, res) => {
       nickname,
       from_email,
       reply_to,
+      from_name,
+      address,
+      city,
+      country,
     };
 
     const response = await axios.post(
