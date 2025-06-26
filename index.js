@@ -7,6 +7,7 @@ const domainRoutes = require("./routes/domainRoutes");
 const cloudflareRoutes = require("./routes/cloudflareRoutes");
 const sendgridRoutes = require("./routes/sendgridRoutes");
 const webformDomainRecordRoutes = require("./routes/webformDomainRecordRoutes");
+const gmailRoutes = require("./routes/gmailRoutes");
 
 const app = express();
 
@@ -20,5 +21,6 @@ app.use("/", domainRoutes);
 app.use("/", cloudflareRoutes);
 app.use("/", sendgridRoutes);
 app.use("/", webformDomainRecordRoutes);
+app.use("/", gmailRoutes);
 
 module.exports = app;
