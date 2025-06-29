@@ -17,17 +17,19 @@ const AppError = require("./utils/appError");
 const app = express();
 
 // Middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
-app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL || 'http://localhost:3000',
-    'http://localhost:5173',
-    'https://sendgrid-abdul.netlify.app'
-  ],
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: [
+      process.env.FRONTEND_URL || "http://localhost:3000",
+      "http://localhost:5173",
+      "https://sendgrid-abdul.netlify.app",
+    ],
+    credentials: true,
+  })
+);
 
 // Routes
 app.use("/api/auth", authRoutes);
@@ -37,10 +39,10 @@ app.use("/", cloudflareRoutes);
 app.use("/", sendgridRoutes);
 app.use("/", webformDomainRecordRoutes);
 app.use("/", gmailRoutes);
-app.use("/shortlinks", shortLinkRoutes);
+app.use("/api/shortlinks", shortLinkRoutes);
 
 // Handle undefined routes
-app.all('*', (req, res, next) => {
+app.all("*", (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });
 

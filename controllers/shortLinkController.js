@@ -134,7 +134,7 @@ exports.createLink = async (req, res) => {
       return handleDBConnectionError(res, 'create link');
     }
 
-    const { targetURL, customShortCode } = req.body;
+    const { targetURL, customShortCode, title, description } = req.body;
 
     // Validation: Check if targetURL is provided
     if (!targetURL) {
@@ -151,6 +151,24 @@ exports.createLink = async (req, res) => {
         status: 'error',
         error: 'Invalid URL format',
         message: 'Please provide a valid URL (including http:// or https://).'
+      });
+    }
+
+    // Validation: Check title length if provided
+    if (title && title.length > 200) {
+      return res.status(400).json({
+        status: 'error',
+        error: 'Title too long',
+        message: 'Title must be 200 characters or less.'
+      });
+    }
+
+    // Validation: Check description length if provided
+    if (description && description.length > 500) {
+      return res.status(400).json({
+        status: 'error',
+        error: 'Description too long',
+        message: 'Description must be 500 characters or less.'
       });
     }
 
@@ -235,7 +253,9 @@ exports.createLink = async (req, res) => {
 
       const newLink = new Link({
         shortCode,
-        targetURL
+        targetURL,
+        title: title || null,
+        description: description || null
       });
 
       await newLink.save();
@@ -275,7 +295,9 @@ exports.createLink = async (req, res) => {
       data: {
         shortCode,
         shortLinkURL,
-        targetURL
+        targetURL,
+        title: title || null,
+        description: description || null
       }
     });
 
@@ -360,7 +382,7 @@ exports.updateLink = async (req, res) => {
     }
 
     const { shortCode } = req.params;
-    const { newTargetURL } = req.body;
+    const { newTargetURL, title, description } = req.body;
 
     // Validation: Check if newTargetURL is provided
     if (!newTargetURL) {
@@ -377,6 +399,24 @@ exports.updateLink = async (req, res) => {
         status: 'error',
         error: 'Invalid URL format',
         message: 'Please provide a valid URL (including http:// or https://).'
+      });
+    }
+
+    // Validation: Check title length if provided
+    if (title && title.length > 200) {
+      return res.status(400).json({
+        status: 'error',
+        error: 'Title too long',
+        message: 'Title must be 200 characters or less.'
+      });
+    }
+
+    // Validation: Check description length if provided
+    if (description && description.length > 500) {
+      return res.status(400).json({
+        status: 'error',
+        error: 'Description too long',
+        message: 'Description must be 500 characters or less.'
       });
     }
 
@@ -412,6 +452,8 @@ exports.updateLink = async (req, res) => {
         return handleDBConnectionError(res, 'update link in database');
       }
       existingLink.targetURL = newTargetURL;
+      if (title !== undefined) existingLink.title = title;
+      if (description !== undefined) existingLink.description = description;
       const updatedLink = await existingLink.save();
 
       return res.status(200).json({
