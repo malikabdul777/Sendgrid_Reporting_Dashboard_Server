@@ -11,7 +11,6 @@ const webformDomainRecordRoutes = require("./routes/webformDomainRecordRoutes");
 const gmailRoutes = require("./routes/gmailRoutes");
 const shortLinkRoutes = require("./routes/shortLinkRoutes");
 const authRoutes = require("./routes/authRoutes");
-const userRoutes = require("./routes/userRoutes");
 const globalErrorHandler = require("./middleware/errorHandler");
 const AppError = require("./utils/appError");
 
@@ -28,7 +27,6 @@ app.use(cors({
 
 // Routes
 app.use("/api/auth", authRoutes);
-app.use("/api/users", userRoutes);
 app.use("/", eventRoutes);
 app.use("/", domainRoutes);
 app.use("/", cloudflareRoutes);
